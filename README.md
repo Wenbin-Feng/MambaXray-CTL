@@ -1,6 +1,6 @@
 # MambaXray-CTL
 
-Official implementation of **MambaXray-CTL: Multi-Stage Contrastive Training for Medical Report Generation with a Mamba-Based Multi-Modal Large Model**.
+Implementation of **MambaXray-CTL: Multi-Stage Contrastive Training for Medical Report Generation with a Mamba-Based Multi-Modal Large Model**.
 
 - [IEEE Xplore](https://ieeexplore.ieee.org/document/11343574)
 - DOI: [10.1109/SMC58881.2025.11343574](https://doi.org/10.1109/SMC58881.2025.11343574)

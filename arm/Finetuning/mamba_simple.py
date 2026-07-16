@@ -17,10 +17,10 @@ try:
 except ImportError:
     causal_conv1d_fn, causal_conv1d_update = None
 
-# try:
-#     from mamba_ssm.ops.selective_scan_interface import selective_scan_fn, mamba_inner_fn, bimamba_inner_fn, mamba_inner_fn_no_out_proj
-# except ImportError:
-#     selective_scan_fn, mamba_inner_fn, bimamba_inner_fn, mamba_inner_fn_no_out_proj = None, None, None, None, None
+try:
+    from mamba_ssm.ops.selective_scan_interface import selective_scan_fn, mamba_inner_fn, bimamba_inner_fn, mamba_inner_fn_no_out_proj
+except ImportError:
+    selective_scan_fn, mamba_inner_fn, bimamba_inner_fn, mamba_inner_fn_no_out_proj = None, None, None, None, None
 from mamba_ssm.ops.selective_scan_interface import selective_scan_fn, mamba_inner_fn
 try:
     from mamba_ssm.ops.triton.selective_state_update import selective_state_update
@@ -426,227 +426,224 @@ class Mamba(nn.Module):
 
         # xz  B D L
         if self.use_fast_path and inference_params is None:  # Doesn't support outputting the states
-            # if self.bimamba_type == "v1":
-            #     A_b = -torch.exp(self.A_b_log.float())
-            #     out = bimamba_inner_fn(
-            #         xz,
-            #         self.conv1d.weight,
-            #         self.conv1d.bias,
-            #         self.x_proj.weight,
-            #         self.dt_proj.weight,
-            #         self.out_proj.weight,
-            #         self.out_proj.bias,
-            #         A,
-            #         A_b,
-            #         None,  # input-dependent B
-            #         None,  # input-dependent C
-            #         self.D.float(),
-            #         delta_bias=self.dt_proj.bias.float(),
-            #         delta_softplus=True,
-            #     )    
-            # elif self.bimamba_type == "v3":
+            if self.bimamba_type == "v1":
+                A_b = -torch.exp(self.A_b_log.float())
+                out = bimamba_inner_fn(
+                    xz,
+                    self.conv1d.weight,
+                    self.conv1d.bias,
+                    self.x_proj.weight,
+                    self.dt_proj.weight,
+                    self.out_proj.weight,
+                    self.out_proj.bias,
+                    A,
+                    A_b,
+                    None,  # input-dependent B
+                    None,  # input-dependent C
+                    self.D.float(),
+                    delta_bias=self.dt_proj.bias.float(),
+                    delta_softplus=True,
+                )    
+            elif self.bimamba_type == "v3":
 
-            #     A_b = -torch.exp(self.A_b_log.float())
-            #     out = mamba_inner_fn_no_out_proj(
-            #         xz,
-            #         self.conv1d.weight,
-            #         self.conv1d.bias,
-            #         self.x_proj.weight,
-            #         self.dt_proj.weight,
-            #         A,
-            #         None,  # input-dependent B
-            #         None,  # input-dependent C
-            #         self.D.float(),
-            #         delta_bias=self.dt_proj.bias.float(),
-            #         delta_softplus=True,
-            #     )
-            #     out_b = mamba_inner_fn_no_out_proj(
-            #         xz.flip([-1]),
-            #         self.conv1d_b.weight,
-            #         self.conv1d_b.bias,
-            #         self.x_proj_b.weight,
-            #         self.dt_proj_b.weight,
-            #         A_b,
-            #         None,
-            #         None,
-            #         self.D_b.float(),
-            #         delta_bias=self.dt_proj_b.bias.float(),
-            #         delta_softplus=True,
-            #     )
-            #     B, D, L = xz.shape
-            #     token_position = L//2
-            #     cls, xc = (xz[:, :, token_position:token_position+1],
-            #                torch.cat([xz[:, :, :token_position], xz[:, :, token_position+1:]], dim=-1))
-            #     xc = xc.reshape(B, D, int(np.sqrt(L)), int(np.sqrt(L)))
-            #     xc = xc.permute(0,1,3,2).reshape(B, D, -1)
-            #     xc = torch.cat((xc[:, :, :token_position], cls, xc[:, :, token_position:]), dim=-1)
-            #     A_c = -torch.exp(self.A_c_log.float())
-            #     out_c = mamba_inner_fn_no_out_proj(
-            #         xc,
-            #         self.conv1d_c.weight,
-            #         self.conv1d_c.bias,
-            #         self.x_proj_c.weight,
-            #         self.dt_proj_c.weight,
-            #         A_c,
-            #         None,
-            #         None,
-            #         self.D_c.float(),
-            #         delta_bias=self.dt_proj_c.bias.float(),
-            #         delta_softplus=True,
-            #     )
+                A_b = -torch.exp(self.A_b_log.float())
+                out = mamba_inner_fn_no_out_proj(
+                    xz,
+                    self.conv1d.weight,
+                    self.conv1d.bias,
+                    self.x_proj.weight,
+                    self.dt_proj.weight,
+                    A,
+                    None,  # input-dependent B
+                    None,  # input-dependent C
+                    self.D.float(),
+                    delta_bias=self.dt_proj.bias.float(),
+                    delta_softplus=True,
+                )
+                out_b = mamba_inner_fn_no_out_proj(
+                    xz.flip([-1]),
+                    self.conv1d_b.weight,
+                    self.conv1d_b.bias,
+                    self.x_proj_b.weight,
+                    self.dt_proj_b.weight,
+                    A_b,
+                    None,
+                    None,
+                    self.D_b.float(),
+                    delta_bias=self.dt_proj_b.bias.float(),
+                    delta_softplus=True,
+                )
+                B, D, L = xz.shape
+                token_position = L//2
+                cls, xc = (xz[:, :, token_position:token_position+1],
+                           torch.cat([xz[:, :, :token_position], xz[:, :, token_position+1:]], dim=-1))
+                xc = xc.reshape(B, D, int(np.sqrt(L)), int(np.sqrt(L)))
+                xc = xc.permute(0,1,3,2).reshape(B, D, -1)
+                xc = torch.cat((xc[:, :, :token_position], cls, xc[:, :, token_position:]), dim=-1)
+                A_c = -torch.exp(self.A_c_log.float())
+                out_c = mamba_inner_fn_no_out_proj(
+                    xc,
+                    self.conv1d_c.weight,
+                    self.conv1d_c.bias,
+                    self.x_proj_c.weight,
+                    self.dt_proj_c.weight,
+                    A_c,
+                    None,
+                    None,
+                    self.D_c.float(),
+                    delta_bias=self.dt_proj_c.bias.float(),
+                    delta_softplus=True,
+                )
 
-            #     A_c_b = -torch.exp(self.A_c_b_log.float())
-            #     out_c_b = mamba_inner_fn_no_out_proj(
-            #         xc.flip([-1]),
-            #         self.conv1d_c_b.weight,
-            #         self.conv1d_c_b.bias,
-            #         self.x_proj_c_b.weight,
-            #         self.dt_proj_c_b.weight,
-            #         A_c_b,
-            #         None,
-            #         None,
-            #         self.D_c_b.float(),
-            #         delta_bias=self.dt_proj_c_b.bias.float(),
-            #         delta_softplus=True,
-            #     )
-            #     #print(xz.mean(), out.mean(), out_b.mean(), out_c.mean(), out_c_b.mean())
-            #     # if torch.isinf(out.mean()) or torch.isnan(out.mean()):
-            #     #     out = out_b.flip([-1])
-            #     # if torch.isinf(out_b.mean()) or torch.isnan(out_b.mean()):
-            #     #     out_b = out.flip([-1])
-            #     # if torch.isinf(out_c.mean()) or torch.isnan(out_c.mean()):
-            #     #     out_c = out_c_b.flip([-1])
-            #     # if torch.isinf(out_c_b.mean()) or torch.isnan(out_c_b.mean()):
-            #     #     out_c_b = out_c.flip([-1])
-            #     # print(xz.mean(), out.mean(), out_b.mean(), out_c.mean(), out_c_b.mean())
-            #     out_c = out_c + out_c_b.flip([-1])
-            #     cls, out_c = (out_c[:, :, token_position:token_position + 1],
-            #                torch.cat([out_c[:, :, :token_position], out_c[:, :, token_position + 1:]], dim=-1))
-            #     out_c = out_c.reshape(B, self.d_inner, int(np.sqrt(L)), int(np.sqrt(L)))
-            #     out_c = out_c.permute(0, 1, 3, 2).reshape(B, self.d_inner, -1)
-            #     out_c = torch.cat((out_c[:, :, :token_position], cls, out_c[:, :, token_position:]), dim=-1)
-            #     out = out + out_b.flip([-1])
-            #     out = F.linear(rearrange((out+out_c)/4.,
-            #                              "b d l -> b l d"),
-            #                    self.out_proj.weight,
-            #                    self.out_proj.bias)
-            # elif self.bimamba_type == "v4":
-            #     A_b = -torch.exp(self.A_b_log.float())
-            #     out = mamba_inner_fn_no_out_proj(
-            #         xz,
-            #         self.conv1d.weight,
-            #         self.conv1d.bias,
-            #         self.x_proj.weight,
-            #         self.dt_proj.weight,
-            #         A,
-            #         None,  # input-dependent B
-            #         None,  # input-dependent C
-            #         self.D.float(),
-            #         delta_bias=self.dt_proj.bias.float(),
-            #         delta_softplus=True,
-            #     )
-            #     out_b = mamba_inner_fn_no_out_proj(
-            #         xz.flip([-1]),
-            #         self.conv1d_b.weight,
-            #         self.conv1d_b.bias,
-            #         self.x_proj_b.weight,
-            #         self.dt_proj_b.weight,
-            #         A_b,
-            #         None,
-            #         None,
-            #         self.D_b.float(),
-            #         delta_bias=self.dt_proj_b.bias.float(),
-            #         delta_softplus=True,
-            #     )
+                A_c_b = -torch.exp(self.A_c_b_log.float())
+                out_c_b = mamba_inner_fn_no_out_proj(
+                    xc.flip([-1]),
+                    self.conv1d_c_b.weight,
+                    self.conv1d_c_b.bias,
+                    self.x_proj_c_b.weight,
+                    self.dt_proj_c_b.weight,
+                    A_c_b,
+                    None,
+                    None,
+                    self.D_c_b.float(),
+                    delta_bias=self.dt_proj_c_b.bias.float(),
+                    delta_softplus=True,
+                )
+                #print(xz.mean(), out.mean(), out_b.mean(), out_c.mean(), out_c_b.mean())
+                # if torch.isinf(out.mean()) or torch.isnan(out.mean()):
+                #     out = out_b.flip([-1])
+                # if torch.isinf(out_b.mean()) or torch.isnan(out_b.mean()):
+                #     out_b = out.flip([-1])
+                # if torch.isinf(out_c.mean()) or torch.isnan(out_c.mean()):
+                #     out_c = out_c_b.flip([-1])
+                # if torch.isinf(out_c_b.mean()) or torch.isnan(out_c_b.mean()):
+                #     out_c_b = out_c.flip([-1])
+                # print(xz.mean(), out.mean(), out_b.mean(), out_c.mean(), out_c_b.mean())
+                out_c = out_c + out_c_b.flip([-1])
+                cls, out_c = (out_c[:, :, token_position:token_position + 1],
+                           torch.cat([out_c[:, :, :token_position], out_c[:, :, token_position + 1:]], dim=-1))
+                out_c = out_c.reshape(B, self.d_inner, int(np.sqrt(L)), int(np.sqrt(L)))
+                out_c = out_c.permute(0, 1, 3, 2).reshape(B, self.d_inner, -1)
+                out_c = torch.cat((out_c[:, :, :token_position], cls, out_c[:, :, token_position:]), dim=-1)
+                out = out + out_b.flip([-1])
+                out = F.linear(rearrange((out+out_c)/4.,
+                                         "b d l -> b l d"),
+                               self.out_proj.weight,
+                               self.out_proj.bias)
+            elif self.bimamba_type == "v4":
+                A_b = -torch.exp(self.A_b_log.float())
+                out = mamba_inner_fn_no_out_proj(
+                    xz,
+                    self.conv1d.weight,
+                    self.conv1d.bias,
+                    self.x_proj.weight,
+                    self.dt_proj.weight,
+                    A,
+                    None,  # input-dependent B
+                    None,  # input-dependent C
+                    self.D.float(),
+                    delta_bias=self.dt_proj.bias.float(),
+                    delta_softplus=True,
+                )
+                out_b = mamba_inner_fn_no_out_proj(
+                    xz.flip([-1]),
+                    self.conv1d_b.weight,
+                    self.conv1d_b.bias,
+                    self.x_proj_b.weight,
+                    self.dt_proj_b.weight,
+                    A_b,
+                    None,
+                    None,
+                    self.D_b.float(),
+                    delta_bias=self.dt_proj_b.bias.float(),
+                    delta_softplus=True,
+                )
 
-            #     B, D, L = xz.shape
-            #     token_position = L//2
-            #     cls, xc = (xz[:, :, token_position:token_position+1],
-            #                torch.cat([xz[:, :, :token_position], xz[:, :, token_position+1:]], dim=-1))
-            #     xc = xc.reshape(B, D, int(np.sqrt(L)), int(np.sqrt(L)))
-            #     xc = xc.permute(0,1,3,2).reshape(B, D, -1)
-            #     xc = torch.cat((xc[:, :, :token_position], cls, xc[:, :, token_position:]), dim=-1)
+                B, D, L = xz.shape
+                token_position = L//2
+                cls, xc = (xz[:, :, token_position:token_position+1],
+                           torch.cat([xz[:, :, :token_position], xz[:, :, token_position+1:]], dim=-1))
+                xc = xc.reshape(B, D, int(np.sqrt(L)), int(np.sqrt(L)))
+                xc = xc.permute(0,1,3,2).reshape(B, D, -1)
+                xc = torch.cat((xc[:, :, :token_position], cls, xc[:, :, token_position:]), dim=-1)
 
-            #     A_c = -torch.exp(self.A_c_log.float())
-            #     out_c = mamba_inner_fn_no_out_proj(
-            #         xc,
-            #         self.conv1d_c.weight,
-            #         self.conv1d_c.bias,
-            #         self.x_proj_c.weight,
-            #         self.dt_proj_c.weight,
-            #         A_c,
-            #         None,
-            #         None,
-            #         self.D_c.float(),
-            #         delta_bias=self.dt_proj_c.bias.float(),
-            #         delta_softplus=True,
-            #     )
+                A_c = -torch.exp(self.A_c_log.float())
+                out_c = mamba_inner_fn_no_out_proj(
+                    xc,
+                    self.conv1d_c.weight,
+                    self.conv1d_c.bias,
+                    self.x_proj_c.weight,
+                    self.dt_proj_c.weight,
+                    A_c,
+                    None,
+                    None,
+                    self.D_c.float(),
+                    delta_bias=self.dt_proj_c.bias.float(),
+                    delta_softplus=True,
+                )
 
-            #     A_c_b = -torch.exp(self.A_c_b_log.float())
-            #     out_c_b = mamba_inner_fn_no_out_proj(
-            #         xc.flip([-1]),
-            #         self.conv1d_c_b.weight,
-            #         self.conv1d_c_b.bias,
-            #         self.x_proj_c_b.weight,
-            #         self.dt_proj_c_b.weight,
-            #         A_c_b,
-            #         None,
-            #         None,
-            #         self.D_c_b.float(),
-            #         delta_bias=self.dt_proj_c_b.bias.float(),
-            #         delta_softplus=True,
-            #     )
+                A_c_b = -torch.exp(self.A_c_b_log.float())
+                out_c_b = mamba_inner_fn_no_out_proj(
+                    xc.flip([-1]),
+                    self.conv1d_c_b.weight,
+                    self.conv1d_c_b.bias,
+                    self.x_proj_c_b.weight,
+                    self.dt_proj_c_b.weight,
+                    A_c_b,
+                    None,
+                    None,
+                    self.D_c_b.float(),
+                    delta_bias=self.dt_proj_c_b.bias.float(),
+                    delta_softplus=True,
+                )
 
-            #     # 沿着骨骼scan
-            #     A_d = -torch.exp(self.A_d_log.float())
-            #     out_d = mamba_inner_fn_no_out_proj(
-            #         xd,  # 修改成我们要的特征
-            #         self.conv1d_d.weight,
-            #         self.conv1d_d.bias,
-            #         self.x_proj_d.weight,
-            #         self.dt_proj_d.weight,
-            #         A_d,
-            #         None,
-            #         None,
-            #         self.D_d.float(),
-            #         delta_bias=self.dt_proj_d.bias.float(),
-            #         delta_softplus=True,
-            #     )
+                # 沿着骨骼scan
+                A_d = -torch.exp(self.A_d_log.float())
+                out_d = mamba_inner_fn_no_out_proj(
+                    xd,  # 修改成我们要的特征
+                    self.conv1d_d.weight,
+                    self.conv1d_d.bias,
+                    self.x_proj_d.weight,
+                    self.dt_proj_d.weight,
+                    A_d,
+                    None,
+                    None,
+                    self.D_d.float(),
+                    delta_bias=self.dt_proj_d.bias.float(),
+                    delta_softplus=True,
+                )
 
-            #     A_d_b = -torch.exp(self.A_d_b_log.float())
-            #     out_d_b = mamba_inner_fn_no_out_proj(
-            #         xd.flip([-1]),  # 修改成我们要的特征
-            #         self.conv1d_d_b.weight,
-            #         self.conv1d_d_b.bias,
-            #         self.x_proj_d_b.weight,
-            #         self.dt_proj_d_b.weight,
-            #         A_d_b,
-            #         None,
-            #         None,
-            #         self.D_d_b.float(),
-            #         delta_bias=self.dt_proj_d_b.bias.float(),
-            #         delta_softplus=True,
-            #     )
+                A_d_b = -torch.exp(self.A_d_b_log.float())
+                out_d_b = mamba_inner_fn_no_out_proj(
+                    xd.flip([-1]),  # 修改成我们要的特征
+                    self.conv1d_d_b.weight,
+                    self.conv1d_d_b.bias,
+                    self.x_proj_d_b.weight,
+                    self.dt_proj_d_b.weight,
+                    A_d_b,
+                    None,
+                    None,
+                    self.D_d_b.float(),
+                    delta_bias=self.dt_proj_d_b.bias.float(),
+                    delta_softplus=True,
+                )
 
-            #     out_c = out_c + out_c_b.flip([-1])
-            #     cls, out_c = (out_c[:, :, token_position:token_position + 1],
-            #                torch.cat([out_c[:, :, :token_position], out_c[:, :, token_position + 1:]], dim=-1))
-            #     out_c = out_c.reshape(B, self.d_inner, int(np.sqrt(L)), int(np.sqrt(L)))
-            #     out_c = out_c.permute(0, 1, 3, 2).reshape(B, self.d_inner, -1)
-            #     out_c = torch.cat((out_c[:, :, :token_position], cls, out_c[:, :, token_position:]), dim=-1)
-            #     out = out + out_b.flip([-1])
-            #     out_d = out_d + out_d_b.flip([-1])
-            #     out = F.linear(rearrange((out+out_c+out_d)/6.,
-            #                              "b d l -> b l d"),
-            #                    self.out_proj.weight,
-            #                    self.out_proj.bias)
-            #     out_d = F.linear(rearrange(out_d/2.,
-                            #              "b d l -> b l d"),
-                            #    self.out_proj.weight,
-                            #    self.out_proj.bias)
-
-            if 1==0:
-                pass
+                out_c = out_c + out_c_b.flip([-1])
+                cls, out_c = (out_c[:, :, token_position:token_position + 1],
+                           torch.cat([out_c[:, :, :token_position], out_c[:, :, token_position + 1:]], dim=-1))
+                out_c = out_c.reshape(B, self.d_inner, int(np.sqrt(L)), int(np.sqrt(L)))
+                out_c = out_c.permute(0, 1, 3, 2).reshape(B, self.d_inner, -1)
+                out_c = torch.cat((out_c[:, :, :token_position], cls, out_c[:, :, token_position:]), dim=-1)
+                out = out + out_b.flip([-1])
+                out_d = out_d + out_d_b.flip([-1])
+                out = F.linear(rearrange((out+out_c+out_d)/6.,
+                                         "b d l -> b l d"),
+                               self.out_proj.weight,
+                               self.out_proj.bias)
+                out_d = F.linear(rearrange(out_d/2.,
+                                         "b d l -> b l d"),
+                               self.out_proj.weight,
+                               self.out_proj.bias)
             else:
                 out = mamba_inner_fn(
                     xz,
