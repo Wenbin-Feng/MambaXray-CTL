@@ -1,0 +1,16 @@
+dataset: iu_xray
+type: large
+batch_size: 20
+val_batch_size: 12
+test_batch_size: 12
+num_workers: 6
+devices: 8
+max_epochs: 30
+max_length: 60
+min_new_tokens: 40
+max_new_tokens: 100
+beam_size: 5
+freeze_vm: false
+contrastive_loss_weight: 0.4
+contrastive_temperature: 0.07
+savedmodel_path: outputs/iu_xray/stage3

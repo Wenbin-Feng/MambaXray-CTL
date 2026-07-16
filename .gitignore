@@ -1,0 +1,79 @@
+# Python bytecode and native build artifacts
+__pycache__/
+*.py[cod]
+*.so
+*.dylib
+*.dll
+*.o
+*.a
+build/
+dist/
+*.egg-info/
+
+# Python environments and tool caches
+.venv/
+venv/
+env/
+.conda/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Local environment and sensitive path configuration
+.env
+.env.*
+!.env.example
+launch/paths.env
+.secrets/
+secrets/
+credentials/
+credentials.json
+service-account*.json
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+
+# Model weights and checkpoints
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+checkpoints/
+
+# Training, evaluation, and experiment outputs
+output/
+outputs/
+save/
+logs/
+results/
+result/
+runs/
+lightning_logs/
+wandb/
+events.out.tfevents.*
+*.log
+
+# Local datasets and annotations (source code in dataset/ and datasets/ is kept)
+/data/
+/annotations/
+
+# Editors, operating-system metadata, and temporary files
+.vscode/
+.idea/
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+*.swp
+*.swo
+*~
+tmp/
+temp/

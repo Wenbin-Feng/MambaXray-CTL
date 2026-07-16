@@ -1,0 +1,15 @@
+dataset: mimic_cxr
+type: large
+batch_size: 2
+val_batch_size: 2
+test_batch_size: 2
+num_workers: 6
+devices: 8
+max_epochs: 6
+max_length: 100
+min_new_tokens: 80
+max_new_tokens: 120
+freeze_vm: false
+contrastive_loss_weight: 0.4
+contrastive_temperature: 0.07
+savedmodel_path: outputs/chexpert_plus/stage3

@@ -1,0 +1,9 @@
+dataset: iu_xray
+type: large
+batch_size: 192
+val_batch_size: 16
+num_workers: 8
+devices: 8
+max_epochs: 50
+freeze_vm: false
+savedmodel_path: outputs/iu_xray/stage2
